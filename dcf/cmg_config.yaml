@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Chipotle Mexican Grill (CMG) — DCF Config
+#  All dollar values in thousands.
+#  Copy this file, rename it, and swap in figures for any other company.
+# ─────────────────────────────────────────────────────────────────────────────
+
+ticker:       CMG
+company_name: Chipotle
+model_date:   "2/18/26"
+today_price:  36.30        # Current market price per share
+shares:       1300000      # Diluted shares outstanding
+cash:         1050000      # Cash & equivalents (balance sheet)
+debt:         5080000      # Total debt (balance sheet)
+wacc:         0.0755       # Weighted average cost of capital
+tgr:          0.060        # Terminal growth rate
+
+# ── Historical (source: 10-K filings) ────────────────────────────────────────
+historical:
+  years:   [2021,    2022,     2023,     2024,      2025     ]
+  revenue: [7550000, 8634700,  9871600,  11310000,  11930000 ]
+  ebit:    [804943,  1160403,  1557813,  1916333,   1935798  ]
+  taxes:   [158574,  282400,   391800,   476100,    473800   ]
+  da:      [254700,  286800,   319400,   335000,    361400   ]
+  capex:   [442479,  479164,   560731,   593603,    666156   ]
+  nwc:     [805467,  613027,   642900,   703854,    740351   ]
+
+# ── Projection drivers (blue input cells) ────────────────────────────────────
+projection:
+  years:       [2026,   2027,   2028,   2029,   2030  ]
+  rev_growth:  [0.10,   0.10,   0.10,   0.10,   0.10  ]   # Revenue growth %
+  ebit_margin: [0.17,   0.1725, 0.18,   0.185,  0.185 ]   # EBIT % of revenue
+  tax_rate:    [0.2375, 0.2375, 0.2375, 0.2375, 0.2375]   # Effective tax rate
+  da_pct:      [0.030,  0.030,  0.030,  0.030,  0.030 ]   # D&A % of revenue
+  capex_pct:   [0.057,  0.058,  0.059,  0.060,  0.061 ]   # CapEx % of revenue
+  nwc_pct:     [0.050,  0.050,  0.050,  0.050,  0.050 ]   # Δ NWC % of revenue
