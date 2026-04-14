@@ -37,7 +37,7 @@ from openpyxl.utils import get_column_letter
 TICKER        = "CMG"
 COMPANY_NAME  = "Chipotle"
 MODEL_DATE    = "2/18/26"
-TODAY_PRICE   = 37.97          # Current market price per share ($)
+TODAY_PRICE   = 36.30          # Current market price per share ($)
 SHARES        = 1_300_000      # Diluted shares outstanding ($ thousands)
 CASH          = 1_050_000      # Cash & cash equivalents   ($ thousands)
 DEBT          = 5_080_000      # Total debt                ($ thousands)
@@ -58,9 +58,9 @@ HIST_CAPEX = [442_479, 479_164, 560_731, 593_603, 666_156]
 HIST_NWC   = [805_467, 613_027, 642_900, 703_854, 740_351]
 
 # ── Projection Drivers (2026–2030)  ←  BLUE cells — change to run scenarios ──
-PROJ_REV_GRW   = [0.10,  0.10,  0.11,  0.12,  0.13]   # Revenue growth rate
-PROJ_EBIT_MGN  = [0.17,  0.17,  0.18,  0.19,  0.19]   # EBIT margin (% of revenue)
-PROJ_TAX_RATE  = [0.24,  0.24,  0.24,  0.24,  0.24]   # Effective tax rate
+PROJ_REV_GRW   = [0.10,   0.10,   0.10,   0.10,   0.10  ]  # Revenue growth rate
+PROJ_EBIT_MGN  = [0.17,   0.1725, 0.18,   0.185,  0.185 ]  # EBIT margin (% of revenue)
+PROJ_TAX_RATE  = [0.2375, 0.2375, 0.2375, 0.2375, 0.2375]  # Effective tax rate (shows ~24%)
 PROJ_DA_PCT    = [0.030, 0.030, 0.030, 0.030, 0.030]   # D&A % of revenue
 PROJ_CAPEX_PCT = [0.057, 0.058, 0.059, 0.060, 0.061]   # CapEx % of revenue
 PROJ_NWC_PCT   = [0.050, 0.050, 0.050, 0.050, 0.050]   # Δ NWC % of revenue
@@ -150,7 +150,8 @@ YELLOW     = "FFFF00"   # Key output highlight
 
 # Number formats
 FMT_INT    = '#,##0_);(#,##0);"-"'   # Whole-number thousands, zero → "-"
-FMT_PCT    = '0.0%;(0.0%);"-"'       # Percentage, zero → "-"
+FMT_PCT    = '0%;(0%);"-"'           # Percentage, 0 decimals, zero → "-"
+FMT_PCT1   = '0.0%;(0.0%);"-"'       # Percentage, 1 decimal  (CapEx %)
 FMT_PRICE  = '$#,##0.00'             # Dollar price
 
 
@@ -321,12 +322,13 @@ def _write_income_statement(ws):
 def _write_cashflow_items(ws):
     _section_header(ws, "CF_H", "Cash Flow Items")
 
+    # pct_fmt: use 1-decimal for CapEx %, 0-decimal for D&A and NWC
     items = [
-        ("DA",    "DAPCT",  "D&A",          HIST_DA,    PROJ_DA_PCT),
-        ("CAPEX", "CXPCT",  "CapEx",        HIST_CAPEX, PROJ_CAPEX_PCT),
-        ("NWC",   "NWPCT",  "Change in NWC",HIST_NWC,   PROJ_NWC_PCT),
+        ("DA",    "DAPCT",  "D&A",          HIST_DA,    PROJ_DA_PCT,    FMT_PCT),
+        ("CAPEX", "CXPCT",  "CapEx",        HIST_CAPEX, PROJ_CAPEX_PCT, FMT_PCT1),
+        ("NWC",   "NWPCT",  "Change in NWC",HIST_NWC,   PROJ_NWC_PCT,   FMT_PCT),
     ]
-    for val_key, pct_key, label, hist_data, proj_pct in items:
+    for val_key, pct_key, label, hist_data, proj_pct, pct_fmt in items:
         _set(ws, R[val_key], COL_LBL, label, bold=True, align_h="left")
         for i, v in enumerate(hist_data):
             _set(ws, R[val_key], COL_H0 + i, v,
@@ -342,9 +344,9 @@ def _write_cashflow_items(ws):
             col = COL_H0 + i
             _set(ws, R[pct_key], col,
                  f"=IFERROR({_c(R[val_key],col)}/{_c(R['REV'],col)},0)",
-                 color=CLR_BLACK, fmt=FMT_PCT, fill_color=HIST_BG)
+                 color=CLR_BLACK, fmt=pct_fmt, fill_color=HIST_BG)
         for i, v in enumerate(proj_pct):
-            _set(ws, R[pct_key], COL_P0 + i, v, color=CLR_BLUE, fmt=FMT_PCT)
+            _set(ws, R[pct_key], COL_P0 + i, v, color=CLR_BLUE, fmt=pct_fmt)
 
 
 def _write_dcf_section(ws):
@@ -377,8 +379,8 @@ def _write_dcf_section(ws):
                  color=CLR_BLACK, fmt=fmt,
                  fill_color=HIST_BG if col < COL_P0 else None)
 
-    # ── NOPAT (PAR = EBIT − Taxes) — projection years only ──────────────────
-    _set(ws, R["PAR"], COL_LBL, "PAR  (NOPAT)", bold=True, align_h="left")
+    # ── EBIAT (EBIT After Tax) — projection years only ───────────────────────
+    _set(ws, R["PAR"], COL_LBL, "EBIAT", bold=True, align_h="left")
     for i in range(N_PROJ):
         col = COL_P0 + i
         _set(ws, R["PAR"], col,
@@ -387,11 +389,11 @@ def _write_dcf_section(ws):
 
     # Mirror CF rows
     mirror_cf = [
-        ("DDA",    "DA",    "DDAPCT",  "DAPCT",  "D&A",          PROJ_DA_PCT),
-        ("DCAPEX", "CAPEX", "DCXPCT",  "CXPCT",  "CapEx",        PROJ_CAPEX_PCT),
-        ("DNWC",   "NWC",   "DNWPCT",  "NWPCT",  "Change in NWC",PROJ_NWC_PCT),
+        ("DDA",    "DA",    "DDAPCT",  "DAPCT",  "D&A",          PROJ_DA_PCT,    FMT_PCT),
+        ("DCAPEX", "CAPEX", "DCXPCT",  "CXPCT",  "CapEx",        PROJ_CAPEX_PCT, FMT_PCT1),
+        ("DNWC",   "NWC",   "DNWPCT",  "NWPCT",  "Change in NWC",PROJ_NWC_PCT,   FMT_PCT),
     ]
-    for val_d, val_s, pct_d, pct_s, label, _ in mirror_cf:
+    for val_d, val_s, pct_d, pct_s, label, _, pct_fmt in mirror_cf:
         _set(ws, R[val_d], COL_LBL, label, bold=True, align_h="left")
         for col in all_cols:
             _set(ws, R[val_d], col, f"={_c(R[val_s],col)}",
@@ -400,7 +402,7 @@ def _write_dcf_section(ws):
         _set(ws, R[pct_d], COL_LBL, "   % of sales", italic=True, align_h="left")
         for col in all_cols:
             _set(ws, R[pct_d], col, f"={_c(R[pct_s],col)}",
-                 color=CLR_BLACK, fmt=FMT_PCT,
+                 color=CLR_BLACK, fmt=pct_fmt,
                  fill_color=HIST_BG if col < COL_P0 else None)
 
     # ── Unlevered FCF ────────────────────────────────────────────────────────
